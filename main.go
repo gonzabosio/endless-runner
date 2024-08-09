@@ -12,13 +12,14 @@ const screenWidth = 1280
 const screenHeight = 720
 
 const velocity = 0.5
-const displacePlatf = 8
+const platfDisplace = 10
 
 var canJump = true
 
-var collision bool
+var genCollision bool
 var generatingMap bool
 var platfCounter = 1
+var platf2 *physics.Body
 
 func main() {
 	rl.InitWindow(screenWidth, screenHeight, "Go-Nowhere")
@@ -26,18 +27,18 @@ func main() {
 
 	physics.Init()
 	player := physics.NewBodyRectangle(rl.NewVector2(screenWidth/12, screenHeight/4*3), 40, 40, 1)
+	player.FreezeOrient = true
 
-	platf := physics.NewBodyRectangle(rl.NewVector2(screenWidth-screenWidth/2, screenHeight), screenWidth*2, 150, 1)
+	platf := physics.NewBodyRectangle(rl.NewVector2(screenWidth-screenWidth/2, screenHeight), screenWidth*3, 150, 1)
 	platf.Enabled = false
 
-	var platf2 *physics.Body
-	generator := rl.NewRectangle(-800, screenHeight-100, 1, 200)
+	generator := rl.NewRectangle(-1260, screenHeight-100, 1, 200)
 
 	rl.SetTargetFPS(75)
 	camera := rl.Camera2D{}
 	camera.Offset = rl.Vector2{X: screenWidth / 2, Y: screenHeight / 2}
 	camera.Rotation = 0.0
-	camera.Zoom = 0.24
+	camera.Zoom = 1
 
 	for !rl.WindowShouldClose() {
 		rl.BeginDrawing()
@@ -47,8 +48,8 @@ func main() {
 		camera.Target = rl.NewVector2(screenWidth/2, screenHeight/2)
 
 		physics.Update()
-
-		platf.Position.X -= displacePlatf
+		fmt.Println(player.Position.X)
+		platf.Position.X -= platfDisplace
 		if rl.IsKeyPressed(rl.KeyUp) && canJump {
 			player.Velocity.Y = -velocity * 5
 			go func() {
@@ -76,38 +77,35 @@ func main() {
 		rl.DrawRectangleRec(generator, rl.White)
 		switch platfCounter {
 		case 1:
-			collision = rl.CheckCollisionRecs(rl.NewRectangle(platf.Position.X*2, platf.Position.Y, screenWidth, 150), generator)
+			genCollision = rl.CheckCollisionRecs(rl.NewRectangle(platf.Position.X*2, platf.Position.Y, screenWidth, 150), generator)
 		case 2:
-			collision = rl.CheckCollisionRecs(rl.NewRectangle(platf2.Position.X*2, platf2.Position.Y, screenWidth, 150), generator)
+			genCollision = rl.CheckCollisionRecs(rl.NewRectangle(platf2.Position.X*2, platf2.Position.Y, screenWidth, 150), generator)
 		}
-		if collision && !generatingMap {
+		if genCollision && !generatingMap {
 			generatingMap = true
 			fmt.Println("COLLISION in Platform: ", platfCounter)
 			if platfCounter == 1 {
 				platfCounter++
 				go func() {
-					platf2 = physics.NewBodyRectangle(rl.NewVector2(screenWidth-screenWidth/2, screenHeight), screenWidth*2, 150, 1)
+					platf2 = physics.NewBodyRectangle(rl.NewVector2(screenWidth*2+screenWidth/2, screenHeight), screenWidth*3, 150, 1)
 					platf2.Enabled = false
-					platf2.Position.X -= displacePlatf
-					time.Sleep(2 * time.Second)
+					time.Sleep(4 * time.Second)
 					platf.Destroy()
 					generatingMap = false
 				}()
 			} else {
 				platfCounter--
 				go func() {
-					platf = physics.NewBodyRectangle(rl.NewVector2(screenWidth-screenWidth/2, screenHeight), screenWidth*2, 150, 1)
+					platf = physics.NewBodyRectangle(rl.NewVector2(screenWidth*2+screenWidth/2, screenHeight), screenWidth*3, 150, 1)
 					platf.Enabled = false
-					platf.Position.X -= displacePlatf
-					time.Sleep(2 * time.Second)
+					time.Sleep(4 * time.Second)
 					platf2.Destroy()
 					generatingMap = false
 				}()
 			}
-
 		}
 		if platf2 != nil {
-			platf2.Position.X -= displacePlatf
+			platf2.Position.X -= platfDisplace
 		}
 		rl.DrawFPS(0, 0)
 		rl.EndDrawing()
